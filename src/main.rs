@@ -12,7 +12,6 @@ const HHMMSS_REGEX: &str = r"^(?P<hours>\d{2}):(?P<minutes>\d{2})(:(?P<seconds>\
 const H_M_S_REGEX: &str = r"^((?P<hours>\d+)h)?((?P<minutes>\d+)m)?((?P<seconds>\d+)s)?$";
 
 // FIXME: This should be part of the binary to avoid any problems in the deployment!
-// FIXME: A sound file might be configured with an environment variable.
 const SOUND_FILE: &str = "sounds/mixkit-service-bell-double-ding-588.wav";
 
 /// A simple error for managing issues in the parameters.
@@ -108,10 +107,11 @@ fn process_command_line() -> Result<Duration, Box<dyn Error>>
     }
 }
 
-fn play_sound() -> Result<(), Box<dyn Error>> {
+fn play_sound(sound_file: &str) -> Result<(), Box<dyn Error>> {
+
     let sl = Soloud::default()?;
     let mut sound = Wav::default();
-    sound.load(Path::new(SOUND_FILE))?;
+    sound.load(Path::new(sound_file))?;
     sl.play(&sound);
     while sl.voice_count() > 0 {
         std::thread::sleep(std::time::Duration::from_millis(100));
@@ -128,6 +128,9 @@ Usage:
 Example:
     egg 19:00
     egg 5m30s
+
+Environment Variables
+    EGG_SOUND <path to a sound file>
 ");
     Err(error)
 }
@@ -138,7 +141,10 @@ fn main() -> Result<(), Box<dyn Error>>
     match process_command_line() {
         Ok(time_to_wait) => {
             sleep(time_to_wait);
-            play_sound()
+            match env::var("EGG_SOUND") {
+                Ok(f) => play_sound(f.as_str()),
+                Err(_) => play_sound(SOUND_FILE)
+            }
         },
         Err(err) => {
             usage(err)
