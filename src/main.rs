@@ -9,16 +9,21 @@ use thiserror::Error;
 use chrono::Local;
 
 const HHMMSS_REGEX: &str = r"^(?P<hours>\d{2}):(?P<minutes>\d{2})(:(?P<seconds>\d{2}))?$";
-//const HHMM_REGEX: &str = r"^(?P<hours>\d{2}):(?P<minutes>\d{2})$";
 const H_M_S_REGEX: &str = r"^((?P<hours>\d+)h)?((?P<minutes>\d+)m)?((?P<seconds>\d+)s)?$";
 
+// FIXME: This should be part of the binary to avoid any problems in the deployment!
+// FIXME: A sound file might be configured with an environment variable.
 const SOUND_FILE: &str = "sounds/mixkit-service-bell-double-ding-588.wav";
 
 /// A simple error for managing issues in the parameters.
 #[derive(Debug, Error)]
 enum EggError {
     #[error("Invalid parameters: '{0}'")]
-    InvalidParameters(String)
+    InvalidParameters(String),
+    #[error("Time already passed: {0}")]
+    TimeAlreadyPassed(String),
+    #[error("Time format not valid: {0}")]
+    InvalidTimeFormat(String),
 }
 
 /// Creates a single string from the command line arguments.
@@ -51,8 +56,17 @@ fn duration_from_absolute(captures: Captures) -> Result<Duration, Box<dyn Error>
     let minutes = get_number(&captures.name("minutes"))?;
     let seconds = get_number(&captures.name("seconds"))?;
     let now = Local::now().naive_local();
-    let alert_time = Local::now().date_naive().and_hms_opt(hours, minutes, seconds).unwrap();
-    Ok(alert_time.signed_duration_since(now).to_std().unwrap())
+    let alert_time = match Local::now().date_naive().and_hms_opt(hours, minutes, seconds) {
+        Some(time) => time,
+        None => return Err(Box::new(EggError::InvalidTimeFormat(format!("{hours:0>2}:{minutes:0>2}:{seconds:0>2}"))))
+    };
+    let duration = alert_time.signed_duration_since(now);
+    if duration.num_seconds() > 0 {
+        Ok(alert_time.signed_duration_since(now).to_std().unwrap())
+    }
+    else {
+        Err(Box::new(EggError::TimeAlreadyPassed(format!("{hours:0>2}:{minutes:0>2}:{seconds:0>2}"))))
+    }
 }
 
 fn duration_from_relative(captures: Captures) -> Result<Duration, Box<dyn Error>>
@@ -60,6 +74,7 @@ fn duration_from_relative(captures: Captures) -> Result<Duration, Box<dyn Error>
     let hours = get_number(&captures.name("hours"))?;
     let minutes = get_number(&captures.name("minutes"))?;
     let seconds = get_number(&captures.name("seconds"))?;
+    // As the hours, minutes and seconds are all unsigned (u32) the result will be inside of u64!
     Ok(Duration::from_secs((hours*3600 + minutes*60 + seconds).try_into().unwrap()))
 }
 
@@ -78,7 +93,7 @@ fn process_command_line() -> Result<Duration, Box<dyn Error>>
         // The complete command line should be considered as one argument.
         let time_defintion = consolidate_command_line(args);
 
-        // Parse the string with regex
+        // Parse the string with constant regex for matching the command line arguments.
         let absolute = Regex::new(HHMMSS_REGEX).unwrap();
         let relative = Regex::new(H_M_S_REGEX).unwrap();
         if let Some(captures) = absolute.captures(&time_defintion) {
@@ -163,5 +178,12 @@ mod tests {
         assert!(&caps.name("hours").is_none());
         assert_eq!("6", &caps["minutes"]);
         assert!(&caps.name("seconds").is_none());
+    }
+
+    #[test]
+    fn test_absolute_error_handling() {
+        let re = Regex::new(HHMMSS_REGEX).unwrap();
+        let caps = re.captures("19:99:23").unwrap();
+        duration_from_absolute(caps).unwrap_err();
     }
 }
