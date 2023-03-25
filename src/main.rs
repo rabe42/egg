@@ -8,11 +8,12 @@ use regex::{Regex, Captures};
 use thiserror::Error;
 use chrono::Local;
 
+/// Compile-time (unit-test) validated regex for command line interface.
 const HHMMSS_REGEX: &str = r"^(?P<hours>\d{2}):(?P<minutes>\d{2})(:(?P<seconds>\d{2}))?$";
 const H_M_S_REGEX: &str = r"^((?P<hours>\d+)h)?((?P<minutes>\d+)m)?((?P<seconds>\d+)s)?$";
 
-// FIXME: This should be part of the binary to avoid any problems in the deployment!
-const SOUND_FILE: &str = "sounds/mixkit-service-bell-double-ding-588.wav";
+/// The static bound sound file, included for save distribution.
+const SOUND: &'static [u8] = include_bytes!("../sounds/mixkit-service-bell-double-ding-588.wav");
 
 /// A simple error for managing issues in the parameters.
 #[derive(Debug, Error)]
@@ -119,6 +120,18 @@ fn play_sound(sound_file: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn play_internal_sound() -> Result<(), Box<dyn Error>> {
+
+    let sl = Soloud::default()?;
+    let mut sound = Wav::default();
+    sound.load_mem(SOUND)?;
+    sl.play(&sound);
+    while sl.voice_count() > 0 {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    Ok(())
+}
+
 fn usage(error: Box<dyn Error>) -> Result<(), Box<dyn Error>> {
     eprintln!("We have had a problem: '{}'", error);
     eprintln!("
@@ -143,7 +156,7 @@ fn main() -> Result<(), Box<dyn Error>>
             sleep(time_to_wait);
             match env::var("EGG_SOUND") {
                 Ok(f) => play_sound(f.as_str()),
-                Err(_) => play_sound(SOUND_FILE)
+                Err(_) => play_internal_sound(),
             }
         },
         Err(err) => {
