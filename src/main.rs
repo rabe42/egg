@@ -1,4 +1,3 @@
-use soloud::*;
 use std::error::Error;
 use std::path::Path;
 use std::thread::sleep;
@@ -7,6 +6,7 @@ use std::env;
 use regex::{Regex, Captures};
 use thiserror::Error;
 use chrono::Local;
+use soloud::{AudioExt, LoadExt, Wav, Soloud};
 
 /// Compile-time (unit-test) validated regex for command line interface.
 const HHMMSS_REGEX: &str = r"^(?P<hours>\d{2}):(?P<minutes>\d{2})(:(?P<seconds>\d{2}))?$";
@@ -69,6 +69,8 @@ fn duration_from_absolute(captures: Captures) -> Result<Duration, Box<dyn Error>
     }
 }
 
+/// Calculates the duration to wait before playing the sound. The captures must be provided from a
+/// regex capture() call.
 fn duration_from_relative(captures: Captures) -> Result<Duration, Box<dyn Error>>
 {
     let hours = get_number(&captures.name("hours"))?;
@@ -108,6 +110,7 @@ fn process_command_line() -> Result<Duration, Box<dyn Error>>
     }
 }
 
+/// Play the sound, provided by the user.
 fn play_sound(sound_file: &str) -> Result<(), Box<dyn Error>> {
 
     let sl = Soloud::default()?;
@@ -120,6 +123,7 @@ fn play_sound(sound_file: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Play the sound, stored in the binary.
 fn play_internal_sound() -> Result<(), Box<dyn Error>> {
 
     let sl = Soloud::default()?;
@@ -132,6 +136,7 @@ fn play_internal_sound() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Print an usage message to the stderr.
 fn usage(error: Box<dyn Error>) -> Result<(), Box<dyn Error>> {
     eprintln!("We have had a problem: '{}'", error);
     eprintln!("
