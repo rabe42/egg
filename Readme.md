@@ -21,11 +21,11 @@ the environment variable `EGG_SOUND`.
 ## Examples
 
 ```sh
-> egg 23:59:59  # Will start to play the sound just before midnight.
+egg 23:59:59  # Will start to play the sound just before midnight.
 
-> egg 6m        # Will tell you that your Egg is Ok in 6 minutes
+egg 6m        # Will tell you that your Egg is Ok in 6 minutes
 
-> EGG_SOUND="~/Music/Ac-DC/Hells-Bells.mp3" egg 3h # Will play your music in 3 hours
+EGG_SOUND="~/Music/Ac-DC/Hells-Bells.mp3" egg 3h # Will play your music in 3 hours
 ```
 
 ## Technically
@@ -37,3 +37,40 @@ escape blanks, this is considered as wrong.
 ## Caveats
 If you terminate the process, e.g. by killing the terminal window, the
 sound will be never played.
+
+## Compiling
+The release build tries to optimize for size as far as possible with the
+standard flags (see `Cargo.toml#profile.release`). All other steps will only
+gain another 10-15% but add severe complexity to the build process.
+
+To make this further optimization you may optimize the used `libc` for the
+needs of this application. To do so perform the following steps for your
+build:
+
+```sh
+rustc -vV | grep host
+```
+
+This will provide you with the information regarding your current
+environment e.g.: `host: x86_64-unknown-linux-gnu` for a Linux machine or
+`x86_64-apple-darwin` for a MacOS system with x86 architecture.
+
+Than you may compile the libc with the following command in this case
+optimized for a Linux system:
+
+```sh
+cargo +nightly build -Z build-std=std,panic_abort --target x86_64-unknown-linux-gnu --release
+```
+
+For this to work, you must install a nightly tool chain, as only this
+nightly cargo version supports the `-Z` option. In addition you need also
+the sources to compile the libc.
+
+```sh
+rustup toolchain install nightly
+rustup component add rust-src --toolchain nightly
+```
+
+Be aware that the result of this optimization is located in the folder:
+`target/x86_64-unknown-linux-gnu/release/`.
+

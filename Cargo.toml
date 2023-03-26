@@ -5,6 +5,13 @@ edition = "2021"
 authors = ["Dr. Ralf Berger <dr.ralf.berger@gmail.com>"]
 description = "Simple command line tool to create a short time timer. Plays a sound, if time is up."
 
+[profile.release]
+strip = true            # Strip symbols from the result
+lto = true              # Link time optimizations
+opt-level = "z"         # Optimize for size
+codegen-units = 1       # Reduce Compile-Time optimizations for production
+panic = "abort"         # Simplify the panic handlink
+
 [dependencies]
 soloud = "1"
 regex = "1"
