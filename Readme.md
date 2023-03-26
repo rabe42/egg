@@ -34,6 +34,9 @@ There is no persistence or anything involved. The main implementation
 effort goes to the command line argument parsing using regex. If you
 escape blanks, this is considered as wrong.
 
+## Media
+The included sound is a free sound file from [Mixkit](https://mixkit.co/free-sound-effects/bell/).
+
 ## Caveats
 If you terminate the process, e.g. by killing the terminal window, the
 sound will be never played.
