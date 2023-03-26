@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Dr. Ralf Berger <dr.ralf.berger@gmail.com>"]
 description = "Simple command line tool to create a short time timer. Plays a sound, if time is up."
+license = "MIT"
 
 [profile.release]
 strip = true            # Strip symbols from the result
