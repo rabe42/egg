@@ -42,6 +42,8 @@ If you terminate the process, e.g. by killing the terminal window, the
 sound will be never played.
 
 ## Compiling
+Please be aware, that the `soloud` library requires a `cmake`.
+
 The release build tries to optimize for size as far as possible with the
 standard flags (see `Cargo.toml#profile.release`). All other steps will only
 gain another 10-15% but add severe complexity to the build process.
