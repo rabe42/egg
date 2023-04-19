@@ -1,12 +1,15 @@
 use std::error::Error;
 use std::path::Path;
 use std::thread::sleep;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::env;
 use regex::{Regex, Captures};
 use thiserror::Error;
 use chrono::Local;
 use soloud::{AudioExt, LoadExt, Wav, Soloud};
+
+use std::io::{Write, stdout};
+use crossterm::{QueueableCommand, cursor, terminal, ExecutableCommand};
 
 /// Compile-time (unit-test) validated regex for command line interface.
 const HHMMSS_REGEX: &str = r"^(?P<hours>\d{2}):(?P<minutes>\d{2})(:(?P<seconds>\d{2}))?$";
@@ -136,6 +139,40 @@ fn play_internal_sound() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Creates a string with the duration in HH:MM:SS format.
+fn format_duration(duration: Duration) -> String {
+    let s = duration.as_secs() % 60;
+    let m = duration.as_secs() / 60 % 60;
+    let h = duration.as_secs() / 60 / 60;
+    format!("{:0>2}:{:0>2}:{:0>2}", h, m, s)
+}
+
+/// Put a countdown of the remaining waiting time to the command line.
+/// It is constructed as a drop-in for the sleep function.
+fn countdown(duration: Duration) {
+    let start = Instant::now();
+    let mut stdout = stdout();
+    let mut i = 0;
+    let mut passed = start.elapsed();
+
+    stdout.execute(cursor::Hide).unwrap();
+    while passed < duration {
+        i = i+1;
+        let delta = duration - passed;
+        stdout.queue(cursor::SavePosition).unwrap();
+        stdout.write_all(format_duration(delta).as_bytes()).unwrap();
+        stdout.queue(cursor::RestorePosition).unwrap();
+        stdout.flush().unwrap();
+
+        sleep(Duration::from_millis(100));
+        passed = start.elapsed();
+
+        stdout.queue(cursor::RestorePosition).unwrap();
+        stdout.queue(terminal::Clear(terminal::ClearType::FromCursorDown)).unwrap();
+    }
+    stdout.execute(cursor::Show).unwrap();
+}
+
 /// Print an usage message to the stderr.
 fn usage(error: Box<dyn Error>) -> Result<(), Box<dyn Error>> {
     eprintln!("We have had a problem: '{}'", error);
@@ -158,7 +195,8 @@ fn main() -> Result<(), Box<dyn Error>>
 {
     match process_command_line() {
         Ok(time_to_wait) => {
-            sleep(time_to_wait);
+            // sleep(time_to_wait);
+            countdown(time_to_wait);
             match env::var("EGG_SOUND") {
                 Ok(f) => play_sound(f.as_str()),
                 Err(_) => play_internal_sound(),
