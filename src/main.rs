@@ -164,7 +164,7 @@ fn countdown(duration: Duration) {
         stdout.queue(cursor::RestorePosition).unwrap();
         stdout.flush().unwrap();
 
-        sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(1000));
         passed = start.elapsed();
 
         stdout.queue(cursor::RestorePosition).unwrap();
