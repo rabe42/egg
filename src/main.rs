@@ -14,6 +14,8 @@ use crossterm::{QueueableCommand, cursor, terminal, ExecutableCommand};
 /// Compile-time (unit-test) validated regex for command line interface.
 const HHMMSS_REGEX: &str = r"^(?P<hours>\d{2}):(?P<minutes>\d{2})(:(?P<seconds>\d{2}))?$";
 const H_M_S_REGEX: &str = r"^((?P<hours>\d+)h)?((?P<minutes>\d+)m)?((?P<seconds>\d+)s)?$";
+const H_M_REGEX: &str = r"^((?P<hours>\d+)h)?((?P<minutes>\d+)[m]*)?$";
+const M_S_REGEX: &str = r"^((?P<minutes>\d+)m)?((?P<seconds>\d+)[s]*)?$";
 
 /// The static bound sound file, included for save distribution.
 const SOUND: &'static [u8] = include_bytes!("../sounds/mixkit-service-bell-double-ding-588.wav");
@@ -83,6 +85,21 @@ fn duration_from_relative(captures: Captures) -> Result<Duration, Box<dyn Error>
     Ok(Duration::from_secs((hours*3600 + minutes*60 + seconds).try_into().unwrap()))
 }
 
+fn duration_from_hm_relative(captures: Captures) -> Result<Duration, Box<dyn Error>>
+{
+    let hours = get_number(&captures.name("hours"))?;
+    let minutes = get_number(&captures.name("minutes"))?;
+    Ok(Duration::from_secs((hours*3600 + minutes*60).try_into().unwrap()))
+}
+
+fn duration_from_ms_relative(captures: Captures) -> Result<Duration, Box<dyn Error>>
+{
+    let minutes = get_number(&captures.name("minutes"))?;
+    let seconds = get_number(&captures.name("seconds"))?;
+    // As the hours, minutes and seconds are all unsigned (u32) the result will be inside of u64!
+    Ok(Duration::from_secs((minutes*60 + seconds).try_into().unwrap()))
+}
+
 /// Processes the command line and returns an duration.
 fn process_command_line() -> Result<Duration, Box<dyn Error>>
 {
@@ -101,11 +118,19 @@ fn process_command_line() -> Result<Duration, Box<dyn Error>>
         // Parse the string with constant regex for matching the command line arguments.
         let absolute = Regex::new(HHMMSS_REGEX).unwrap();
         let relative = Regex::new(H_M_S_REGEX).unwrap();
+        let hm_short = Regex::new(H_M_REGEX).unwrap();
+        let ms_short = Regex::new(M_S_REGEX).unwrap();
         if let Some(captures) = absolute.captures(&time_defintion) {
             duration_from_absolute(captures)
         }
         else if let Some(captures) = relative.captures(&time_defintion) {
             duration_from_relative(captures)
+        }
+        else if let Some(captures) = hm_short.captures(&time_defintion) {
+            duration_from_hm_relative(captures)
+        }
+        else if let Some(captures) = ms_short.captures(&time_defintion) {
+            duration_from_ms_relative(captures)
         }
         else {
             Err(Box::new(EggError::InvalidParameters(time_defintion)))
@@ -240,6 +265,22 @@ mod tests {
         assert!(&caps.name("hours").is_none());
         assert_eq!("6", &caps["minutes"]);
         assert!(&caps.name("seconds").is_none());
+    }
+
+    #[test]
+    fn test_hm_regex() {
+        let r = Regex::new(H_M_REGEX).unwrap();
+        let caps = r.captures("10h5").unwrap();
+        assert_eq!("10", &caps["hours"]);
+        assert_eq!("5", &caps["minutes"]);
+    }
+
+    #[test]
+    fn test_ms_regex() {
+        let r = Regex::new(M_S_REGEX).unwrap();
+        let caps = r.captures("19m3").unwrap();
+        assert_eq!("19", &caps["minutes"]);
+        assert_eq!("3", &caps["seconds"]);
     }
 
     #[test]
