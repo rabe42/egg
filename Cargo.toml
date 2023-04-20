@@ -1,6 +1,6 @@
 [package]
 name = "egg"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Dr. Ralf Berger <dr.ralf.berger@gmail.com>"]
 description = "Simple command line tool to create a short time timer. Plays a sound, if the time is up."
