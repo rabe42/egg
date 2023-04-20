@@ -10,6 +10,8 @@ use soloud::{AudioExt, LoadExt, Wav, Soloud};
 
 use std::io::{Write, stdout};
 use crossterm::{QueueableCommand, cursor, terminal, ExecutableCommand};
+use nix::unistd::{tcgetpgrp, getpgrp};
+use nix::libc::{STDIN_FILENO };
 
 /// Compile-time (unit-test) validated regex for command line interface.
 const HHMMSS_REGEX: &str = r"^(?P<hours>\d{2}):(?P<minutes>\d{2})(:(?P<seconds>\d{2}))?$";
@@ -29,6 +31,20 @@ enum EggError {
     TimeAlreadyPassed(String),
     #[error("Time format not valid: {0}")]
     InvalidTimeFormat(String),
+}
+
+/// Detects, if the process runs at the point of time of it's calling, in the foreground.
+fn is_foreground_process() -> bool
+{
+    if let Ok(pid) = tcgetpgrp(STDIN_FILENO) {
+        if pid.as_raw() == -1 {
+            false
+        } else {
+            pid == getpgrp()
+        }
+    } else {
+        false
+    }
 }
 
 /// Creates a single string from the command line arguments.
@@ -220,8 +236,11 @@ fn main() -> Result<(), Box<dyn Error>>
 {
     match process_command_line() {
         Ok(time_to_wait) => {
-            // sleep(time_to_wait);
-            countdown(time_to_wait);
+            if is_foreground_process() {
+                countdown(time_to_wait);
+            } else {
+                sleep(time_to_wait);
+            }
             match env::var("EGG_SOUND") {
                 Ok(f) => play_sound(f.as_str()),
                 Err(_) => play_internal_sound(),

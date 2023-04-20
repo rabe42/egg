@@ -18,6 +18,9 @@ Or you provide a delta like so:
 If you don't like the provided sound, you may specify your own sound using
 the environment variable `EGG_SOUND`.
 
+The program detects, if it was started running on the terminal in the
+foreground. If this is the case, a countdown will be shown.
+
 ## Examples
 
 ```sh
