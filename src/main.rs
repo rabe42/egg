@@ -11,7 +11,7 @@ use soloud::{AudioExt, LoadExt, Wav, Soloud};
 use std::io::{Write, stdout};
 use crossterm::{QueueableCommand, cursor, terminal, ExecutableCommand};
 use nix::unistd::{tcgetpgrp, getpgrp};
-use nix::libc::{STDIN_FILENO };
+use nix::libc::STDIN_FILENO;
 
 /// Compile-time (unit-test) validated regex for command line interface.
 const HHMMSS_REGEX: &str = r"^(?P<hours>\d{2}):(?P<minutes>\d{2})(:(?P<seconds>\d{2}))?$";
@@ -57,8 +57,9 @@ fn consolidate_command_line(args: Vec<String>) -> String
     time_defintion
 }
 
-/// Given the regex, only number representations will be provided. 
-fn get_number(representation: &Option<regex::Match>) -> Result<u32, Box<dyn Error>> {
+/// Given the regex, only number representations will be provided.
+fn get_number(representation: &Option<regex::Match>) -> Result<u32, Box<dyn Error>>
+{
     if let Some(rmatch) = representation {
         match rmatch.as_str().parse() {
             Ok(i) => Ok(i),
@@ -193,13 +194,12 @@ fn format_duration(duration: Duration) -> String {
 fn countdown(duration: Duration) {
     let start = Instant::now();
     let mut stdout = stdout();
-    let mut i = 0;
     let mut passed = start.elapsed();
 
     stdout.execute(cursor::Hide).unwrap();
     while passed < duration {
-        i = i+1;
         let delta = duration - passed;
+
         stdout.queue(cursor::SavePosition).unwrap();
         stdout.write_all(format_duration(delta).as_bytes()).unwrap();
         stdout.queue(cursor::RestorePosition).unwrap();
@@ -218,7 +218,7 @@ fn countdown(duration: Duration) {
 fn usage(error: Box<dyn Error>) -> Result<(), Box<dyn Error>> {
     eprintln!("We have had a problem: '{}'", error);
     eprintln!("
-Usage: 
+Usage:
     egg HH:MM:SS or HHhMMmSSs
 
 Example:
