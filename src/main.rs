@@ -10,7 +10,11 @@ use soloud::{AudioExt, LoadExt, Wav, Soloud};
 
 use std::io::{Write, stdout};
 use crossterm::{QueueableCommand, cursor, terminal, ExecutableCommand};
+
+#[cfg(target_family="unix")]
 use nix::unistd::{tcgetpgrp, getpgrp};
+
+#[cfg(target_family="unix")]
 use nix::libc::STDIN_FILENO;
 
 /// Compile-time (unit-test) validated regex for command line interface.
@@ -36,6 +40,7 @@ enum EggError {
 /// Detects, if the process runs at the point of time of it's calling, in the foreground.
 fn is_foreground_process() -> bool
 {
+    #[cfg(target_family="unix")]
     if let Ok(pid) = tcgetpgrp(STDIN_FILENO) {
         if pid.as_raw() == -1 {
             false
@@ -45,6 +50,9 @@ fn is_foreground_process() -> bool
     } else {
         false
     }
+
+    #[cfg(target_family="windows")]
+    true
 }
 
 /// Creates a single string from the command line arguments.
