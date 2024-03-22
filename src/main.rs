@@ -14,9 +14,6 @@ use crossterm::{QueueableCommand, cursor, terminal, ExecutableCommand};
 #[cfg(target_family="unix")]
 use nix::unistd::{tcgetpgrp, getpgrp};
 
-#[cfg(target_family="unix")]
-use nix::libc::STDIN_FILENO;
-
 /// Compile-time (unit-test) validated regex for command line interface.
 const HHMMSS_REGEX: &str = r"^(?P<hours>\d{2}):(?P<minutes>\d{2})(:(?P<seconds>\d{2}))?$";
 const H_M_S_REGEX: &str = r"^((?P<hours>\d+)h)?((?P<minutes>\d+)m)?((?P<seconds>\d+)s)?$";
@@ -24,7 +21,7 @@ const H_M_REGEX: &str = r"^((?P<hours>\d+)h)?((?P<minutes>\d+)[m]*)?$";
 const M_S_REGEX: &str = r"^((?P<minutes>\d+)m)?((?P<seconds>\d+)[s]*)?$";
 
 /// The static bound sound file, included for save distribution.
-const SOUND: &'static [u8] = include_bytes!("../sounds/mixkit-service-bell-double-ding-588.wav");
+const SOUND: &[u8] = include_bytes!("../sounds/mixkit-service-bell-double-ding-588.wav");
 
 /// A simple error for managing issues in the parameters.
 #[derive(Debug, Error)]
@@ -41,7 +38,7 @@ enum EggError {
 fn is_foreground_process() -> bool
 {
     #[cfg(target_family="unix")]
-    if let Ok(pid) = tcgetpgrp(STDIN_FILENO) {
+    if let Ok(pid) = tcgetpgrp(std::io::stdin()) {
         if pid.as_raw() == -1 {
             false
         } else {
@@ -107,14 +104,14 @@ fn duration_from_relative(captures: Captures) -> Result<Duration, Box<dyn Error>
     let minutes = get_number(&captures.name("minutes"))?;
     let seconds = get_number(&captures.name("seconds"))?;
     // As the hours, minutes and seconds are all unsigned (u32) the result will be inside of u64!
-    Ok(Duration::from_secs((hours*3600 + minutes*60 + seconds).try_into().unwrap()))
+    Ok(Duration::from_secs((hours*3600 + minutes*60 + seconds).into()))
 }
 
 fn duration_from_hm_relative(captures: Captures) -> Result<Duration, Box<dyn Error>>
 {
     let hours = get_number(&captures.name("hours"))?;
     let minutes = get_number(&captures.name("minutes"))?;
-    Ok(Duration::from_secs((hours*3600 + minutes*60).try_into().unwrap()))
+    Ok(Duration::from_secs((hours*3600 + minutes*60).into()))
 }
 
 fn duration_from_ms_relative(captures: Captures) -> Result<Duration, Box<dyn Error>>
@@ -122,7 +119,7 @@ fn duration_from_ms_relative(captures: Captures) -> Result<Duration, Box<dyn Err
     let minutes = get_number(&captures.name("minutes"))?;
     let seconds = get_number(&captures.name("seconds"))?;
     // As the hours, minutes and seconds are all unsigned (u32) the result will be inside of u64!
-    Ok(Duration::from_secs((minutes*60 + seconds).try_into().unwrap()))
+    Ok(Duration::from_secs((minutes*60 + seconds).into()))
 }
 
 /// Processes the command line and returns an duration.

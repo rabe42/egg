@@ -14,9 +14,9 @@ codegen-units = 1       # Reduce Compile-Time optimizations for production
 panic = "abort"         # Simplify the panic handlink
 
 [dependencies]
-soloud = "1"
-regex = "1"
-thiserror = "1"
-chrono = "0.4"
-crossterm = "0.27"
+soloud = "1.0.5"
+regex = "1.10.3"
+thiserror = "1.0.58"
+chrono = "0.4.34"
+crossterm = "0.27.0"
 nix = { version="0.28.0", features=["process", "term"]}
