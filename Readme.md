@@ -56,7 +56,7 @@ The release build tries to optimize for size as far as possible with the
 standard flags (see `Cargo.toml#profile.release`). All other steps will only
 gain another 10-15% but add severe complexity to the build process.
 
-To make this further optimization you may optimize the used `libc` for the
+To make these additional optimization you may optimize the used `libc` for the
 needs of this application. To do so perform the following steps for your
 build:
 
